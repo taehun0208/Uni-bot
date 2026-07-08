@@ -1,93 +1,119 @@
-# back-end
+# UniBot Backend
 
+UniBot(사내 챗봇 서비스) 백엔드입니다. 현재는 **초기 세팅(스캐폴딩 + 설정 + 인프라)** 까지 완료된 상태이며, 기능(M1 인증/계정 등)은 아직 구현 전입니다.
 
+## 기술 스택
 
-## Getting started
+| 구분 | 선택 |
+|---|---|
+| 언어/프레임워크 | Python 3.12, FastAPI |
+| ORM/마이그레이션 | SQLAlchemy 2.0 (async) + asyncpg, Alembic |
+| DB / 캐시 | PostgreSQL 16, Redis 7 (redis-py async) |
+| 인증 | PyJWT (HS256), bcrypt, msal (Microsoft Entra ID) |
+| 설정 | pydantic-settings (.env) |
+| 테스트 | pytest, pytest-asyncio, httpx |
+| 인프라 | Docker Compose (postgres + redis) |
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+## 프로젝트 구조
 
 ```
-cd existing_repo
-git remote add origin https://git.rikkei.org/internship-2026-07/back-end.git
-git branch -M main
-git push -uf origin main
+app/
+├── main.py                # FastAPI 앱, CORS (라우터는 구현 후 등록)
+├── core/
+│   ├── config.py          # pydantic-settings (.env 로드)
+│   ├── security.py        # (예정) JWT 발급/검증, bcrypt, 비밀번호 정책
+│   └── deps.py            # (예정) get_current_user, get_current_admin
+├── db/
+│   ├── session.py         # (예정) async engine/session
+│   └── redis.py           # (예정) redis client
+├── models/                # (예정) user.py, team.py
+├── schemas/               # (예정) auth.py, user.py
+├── api/                   # (예정) auth.py, users.py, admin_users.py
+└── services/              # (예정) auth_service.py, user_service.py, ms_oauth.py
+alembic/                   # 마이그레이션 스캐폴드 (async 템플릿, 마이그레이션 파일은 아직 없음)
+tests/                     # pytest
+scripts/seed_admin.py      # (예정) admin 계정 시드
+docker-compose.yml         # postgres 16 + redis 7
+.env.example               # 환경 변수 템플릿
+requirements.txt
 ```
 
-## Integrate with your tools
+`(예정)` 표시 파일은 자리만 잡아둔 placeholder이며 내부는 TODO 주석만 있습니다.
 
-- [ ] [Set up project integrations](https://git.rikkei.org/internship-2026-07/back-end/-/settings/integrations)
+## 개발 환경 세팅
 
-## Collaborate with your team
+### 1. Python 3.12 가상환경
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+Python 3.12 기준입니다. [uv](https://docs.astral.sh/uv/)가 있으면 3.12가 없어도 자동으로 받아줍니다.
 
-## Test and Deploy
+```bash
+# uv 사용 (권장)
+uv venv venv --python 3.12
+uv pip install --python venv/bin/python -r requirements.txt
 
-Use the built-in continuous integration in GitLab.
+# 또는 python3.12가 이미 설치되어 있다면
+python3.12 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+### 2. 환경 변수
 
-***
+```bash
+cp .env.example .env
+```
 
-# Editing this README
+| 변수 | 설명 |
+|---|---|
+| DATABASE_URL | asyncpg URL (기본 `postgresql+asyncpg://unibot:unibot@localhost:5432/unibot`) |
+| POSTGRES_HOST_PORT | docker compose가 노출할 postgres 호스트 포트 (기본 5432) |
+| REDIS_URL | 기본 `redis://localhost:6379/0` |
+| JWT_SECRET_KEY | `openssl rand -hex 32` 로 생성해 교체 |
+| ACCESS_TOKEN_EXPIRE_MINUTES / REFRESH_TOKEN_EXPIRE_DAYS | 토큰 만료 (기본 60분 / 14일) |
+| MS_CLIENT_ID / MS_CLIENT_SECRET / MS_TENANT_ID / MS_REDIRECT_URI | Microsoft Entra ID 앱 등록 값 |
+| FRONTEND_URL | CORS 허용 origin (기본 `http://localhost:3000`) |
+| COOKIE_SECURE | 개발 `false`, 운영 `true` |
+| ADMIN_EMAIL / ADMIN_PASSWORD / ADMIN_NAME | admin 시드용 |
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+> 로컬에서 5432 포트를 이미 다른 postgres가 쓰고 있다면 `.env`에서 `POSTGRES_HOST_PORT`와 `DATABASE_URL`의 포트를 함께 바꿔주세요 (예: 5433).
 
-## Suggestions for a good README
+### 3. 인프라 (postgres + redis)
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+```bash
+docker compose up -d      # postgres는 healthcheck 포함
+docker compose ps         # unibot-postgres (healthy), unibot-redis 확인
+```
 
-## Name
-Choose a self-explaining name for your project.
+### 4. 서버 실행
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+```bash
+venv/bin/uvicorn app.main:app --reload
+# 또는 source venv/bin/activate 후 uvicorn app.main:app --reload
+```
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+확인:
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+```bash
+curl http://localhost:8000/health
+# {"status":"ok"}
+```
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## DB 마이그레이션 (Alembic)
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+async 템플릿으로 스캐폴드만 생성된 상태입니다 (`alembic/versions/` 비어 있음). 모델 구현 후:
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+```bash
+venv/bin/alembic revision --autogenerate -m "..."   # env.py에 Base.metadata 연결 필요 (TODO 주석 참고)
+venv/bin/alembic upgrade head
+```
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+## 현재 엔드포인트
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+- `GET /health` : 헬스 체크 (`{"status":"ok"}`)
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+인증/유저/어드민 API는 M1 구현 시 추가됩니다.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+## 참고
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+- CORS는 `FRONTEND_URL` 단일 origin + `allow_credentials=True`로 설정되어 있습니다 (refresh 토큰 httpOnly 쿠키 전달용).
+- `.env`는 git에 올리지 않습니다 (`.gitignore` 등록됨). 새 변수를 추가하면 `.env.example`도 함께 갱신해주세요.

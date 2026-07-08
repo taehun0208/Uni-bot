@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: unibot-postgres
+    environment:
+      POSTGRES_USER: unibot
+      POSTGRES_PASSWORD: unibot
+      POSTGRES_DB: unibot
+    ports:
+      # 로컬에서 5432가 이미 사용 중이면 .env의 POSTGRES_HOST_PORT로 변경
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U unibot -d unibot"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7
+    container_name: unibot-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
